@@ -7,17 +7,23 @@ Consider these factors, and how they influence the *intensity* and *spread* of a
 *   **Color Saturation and Brightness:** Areas of vibrant or bright colors.
 *   **Text Properties:** Prioritize larger text sizes, bolder fonts, and text placed centrally within the ad. Treat different sections of text differently; headlines should receive higher attention scores than body copy.
 *   **Design Elements:** Focus on specific design features of objects (e.g., car headlights, grille, reflections) rather than the entire object.
-*   **Background Gradients:** Subtle variations in background lighting or color. Don't ignore the background entirely.
 *   **Relative, not Absolute:** Remember that the heatmap represents *relative* attention.
 
 **Specific Heuristics Based on Eye-Tracking Research:**
 
-*   **Ad Copy First:**  Look for the most prominent advertising text (headline, main message). This should be a primary focus.
+*   **Ad Copy First:**  Look for the most prominent advertising text (headline, main message). This should be a primary focus. 
 *   **Prioritize Emotional Content:**  If the ad contains images of faces (especially children or faces showing positive emotions), these will likely be strong attractors.
 *   **Brand Logos Last:**  While the brand logo should be noted, it often receives less initial attention than other elements.
 *   **Consider Congruence:** To increase the probability of the brand being noticed, the ad should be as less cluttered as possible.
+*   **Background Elements:** Demphasize background elements or remove from consideration, unless they are highly salient (e.g., a bright, colorful background). 
 
-Return bounding boxes as a JSON array with labels and attention_score.
+**Output:**
+
+* Return JSON array with labels and attention_score.
+* Label must be unique and must describe the element accurately. 
+* If the element is text, the label should describe the text content.
+* Normalize the attention_score to a scale of 0-1.
+
 
 **Important Constraints:**
 

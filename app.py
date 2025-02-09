@@ -19,6 +19,8 @@ if 'image_with_boxes' not in st.session_state:
     st.session_state.image_with_boxes = None
 if 'heatmap' not in st.session_state:
     st.session_state.heatmap = None
+if 'previous_upload' not in st.session_state:
+    st.session_state.previous_upload = None
     
 def handle_left_button():
     st.session_state.aois = attention_analysis(neuro_prompt, st.session_state.image)
@@ -29,12 +31,19 @@ def handle_left_button():
 def handle_right_button():
     st.session_state.heatmap = create_heatmap(st.session_state.image, st.session_state.aois)
     
-uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
+uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg", "webp"])
+
+if uploaded_file is not None and uploaded_file != st.session_state.previous_upload:
+    st.session_state.aois = None
+    st.session_state.image = None
+    st.session_state.image_with_boxes = None
+    st.session_state.heatmap = None
+    st.session_state.previous_upload = uploaded_file
 
 with left_column:
     if uploaded_file is not None:
         image = Image.open(io.BytesIO(uploaded_file.getvalue()))
-        image.thumbnail([1024,1024], Image.Resampling.LANCZOS)
+        image.thumbnail([512,512], Image.Resampling.LANCZOS)
         st.session_state.image = image
         st.image(image, use_container_width=True)
         
@@ -47,7 +56,7 @@ with left_column:
             
         # Right Button – Create Heatmap
         if right.button(
-            "Creat heatmap", 
+            "Create heatmap", 
             use_container_width=True,
             disabled=st.session_state.aois is None
         ):

@@ -46,7 +46,10 @@ def overlay_bounding_boxes(image: PIL.Image.Image, aois) -> PIL.Image.Image:
         aois: AttentionAnalysis object containing the elements
     """
     try:
-        
+        # Convert image to RGBA if it isn't already
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+            
         width, height = image.size
 
         # Create a transparent overlay image
@@ -54,17 +57,16 @@ def overlay_bounding_boxes(image: PIL.Image.Image, aois) -> PIL.Image.Image:
         draw = ImageDraw.Draw(overlay)
 
         # Draw boxes and labels
-        print(aois)
         for aoi in aois:
             bbox = aoi["bounding_box"]
             label = aoi["label"]
             score = aoi["attention_score"]
 
             # Draw rectangle
-            draw.rectangle(((bbox[0], bbox[1]), (bbox[2], bbox[3])), outline="green", width=4)
+            draw.rectangle(((bbox[0], bbox[1]), (bbox[2], bbox[3])), outline="green", width=2)
 
-            # Optionally add label and score
-            text_pos = (bbox[0], bbox[1] - 15)  # Position above box
+            # Add label and score
+            text_pos = (bbox[0], bbox[1] - 15) 
             draw.text(text_pos, f"{label}: {score:.1f}", fill="green")
 
         # Combine images and save
@@ -99,7 +101,7 @@ def create_color_mapping(value):
         return (1, 1 - ratio/3, 0, alpha)  # Slower green reduction
     else:
         # Orange to Red with smoother transition
-        ratio = (value - 0.65) / 0.35  # Longer transition period
+        ratio = (value - 0.65) / 0.35  
         green_component = max(0.6 - (ratio * 0.6), 0)  # Slower green reduction
         alpha = min(0.7 + (ratio * 0.2), 0.9)  # Gradual alpha increase
         return (1, green_component, 0, alpha)
@@ -109,6 +111,10 @@ def create_heatmap(image: PIL.Image.Image, aois: List[AOIS]) -> PIL.Image.Image:
     Create a heatmap overlay with smooth circular gradients and transparency.
     """
     # Read image using PIL first to handle PNG properly
+    
+    # Sigma Clamping
+    SIGMA_MIN = 5
+    SIGMA_MAX = 80
     
     # Convert to RGB if needed
     if image.mode != 'RGB':
@@ -129,24 +135,35 @@ def create_heatmap(image: PIL.Image.Image, aois: List[AOIS]) -> PIL.Image.Image:
     # Generate gaussian heatmap
     for element in aois:
         x1, y1, x2, y2 = element['bounding_box']
+        box_width = x2 - x1
+        box_height = y2 - y1
+        
         score = element['attention_score']
+        
+        # scale the score by a factor inversely proportional 
+        # to its area, so smaller bounding boxes get a gentle boost, while bigger ones do not dominate.
+        area = box_width * box_height
+        area_factor = 1.0 / (np.sqrt(area) + 1e-8)
+        scaled_score = score 
         
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
         
         # Calculate separate x and y standard deviations based on box dimensions
-        sigma_x = (x2 - x1) / 6  # Standard deviation for x direction
-        sigma_y = (y2 - y1) / 6  # Standard deviation for y direction
+        # Add clamping to prevent extreme values
+        sigma_x = max(SIGMA_MIN, min(SIGMA_MAX, box_width / 6))
+        sigma_y = max(SIGMA_MIN, min(SIGMA_MAX, box_height / 6))
+
         
         # Calculate separate squared distances for x and y
         squared_dist_x = (X - center_x)**2 / (2 * sigma_x**2)
         squared_dist_y = (Y - center_y)**2 / (2 * sigma_y**2)
         
         # Combine for oval-shaped gaussian with increased center intensity
-        gaussian = score * np.exp(-(squared_dist_x + squared_dist_y))
+        gaussian = scaled_score * np.exp(-(squared_dist_x + squared_dist_y))
         
         # Apply power function to increase contrast
-        gaussian = gaussian ** 0.5  # Values less than 1 will increase intensity
+        gaussian = gaussian ** 0.7  # Values less than 1 will increase intensity
         
         # Accumulate in heatmap
         heatmap += gaussian

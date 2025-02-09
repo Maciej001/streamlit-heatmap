@@ -12,7 +12,7 @@ from prompt_utils import create_bbox_prompt
 from image_utils import normalize_bbox
 
 GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-model_name = 'gemini-2.0-flash'
+model_name = 'gemini-2.0-pro-exp-02-05'
 
 
 def attention_analysis(prompt: str, image: PIL.Image.Image) -> Optional[AttentionAnalysis]:
@@ -34,6 +34,7 @@ def attention_analysis(prompt: str, image: PIL.Image.Image) -> Optional[Attentio
             model=model_name,
             contents=[prompt, image],
             config=types.GenerateContentConfig(
+                temperature=0,
                 response_mime_type = 'application/json',
                 response_schema = AttentionAnalysis
             )
@@ -65,7 +66,10 @@ def get_bounding_boxes(aois: AttentionAnalysis, image: PIL.Image.Image) -> List[
         print("bboxes_prompt: ", bboxes_prompt)
         response = client.models.generate_content(
             model=model_name,
-            contents=[bboxes_prompt, image]
+            contents=[bboxes_prompt, image],
+            config=types.GenerateContentConfig(
+                temperature=0
+            )
         )
         print("Response from get_bounding_boxes:", response.text)
 
@@ -85,7 +89,6 @@ def add_bboxes_to_aois(aois: AttentionAnalysis, bboxes: List[BoundingBox], image
     with_bboxes = []
     print('aois: ', aois)
     print('bboxes: ', bboxes)
-    print("json.loads(bboxes): ", json.loads(bboxes))
     for i, bounding_box in enumerate(json.loads(bboxes)):
         aoi_element = find_aoi_by_label(aois, bounding_box["label"])
         if aoi_element:
