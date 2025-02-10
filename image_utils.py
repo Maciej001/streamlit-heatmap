@@ -80,30 +80,31 @@ def create_color_mapping(value):
     """
     Create RGBA color values for a given intensity value (0-1).
     Color transitions with varying transparency levels:
-    - 0.0-0.33: Transparent to Green (alpha: 0 to 0.5)
+    - 0.0-0.20: Transparent to Green (alpha: 0 to 0.5)
     - 0.33-0.66: Green to Yellow (alpha: 0.5)
     - 0.66-0.85: Yellow to Orange (alpha: 0.5 to 0.8)
     - 0.85-1.0: Orange to Red (alpha: 0.8)
     """
-    if value < 0.25:  # First transition
+    if value < 0.20:  # First transition
         # Transparent to Green
-        ratio = value / 0.25
+        ratio = value / 0.2
         alpha = ratio * 0.5
         return (0, 1, 0, alpha)
-    elif value < 0.5:  # Second transition
+    elif value < 0.4:  # Second transition
         # Green to Yellow
-        ratio = (value - 0.25) / 0.25
-        return (ratio, 1, 0, 0.5)
-    elif value < 0.65:  # Start orange transition earlier
+        ratio = (value - 0.2) / 0.2
+        alpha = 0.5 + (ratio * 0.2)  # Gradual alpha increase
+        return (ratio, 1, 0, alpha)
+    elif value < 0.70:  # Start orange transition earlier
         # Yellow to Orange
-        ratio = (value - 0.5) / 0.15
-        alpha = 0.5 + (ratio * 0.2)  # Smaller alpha change
+        ratio = (value - 0.4) / 0.30
+        alpha = 0.6 + (ratio * 0.3)  # Smaller alpha change
         return (1, 1 - ratio/3, 0, alpha)  # Slower green reduction
     else:
         # Orange to Red with smoother transition
-        ratio = (value - 0.65) / 0.35  
-        green_component = max(0.6 - (ratio * 0.6), 0)  # Slower green reduction
-        alpha = min(0.7 + (ratio * 0.2), 0.9)  # Gradual alpha increase
+        ratio = (value - 0.7) / 0.3  
+        green_component = max(0.7 - (ratio * 0.7), 0)  # Slower green reduction
+        alpha = min(0.85 + (ratio * 0.3), 1)  # Gradual alpha increase
         return (1, green_component, 0, alpha)
       
 def create_heatmap(image: PIL.Image.Image, aois: List[AOIS]) -> PIL.Image.Image:
@@ -144,15 +145,15 @@ def create_heatmap(image: PIL.Image.Image, aois: List[AOIS]) -> PIL.Image.Image:
         # to its area, so smaller bounding boxes get a gentle boost, while bigger ones do not dominate.
         area = box_width * box_height
         area_factor = 1.0 / (np.sqrt(area) + 1e-8)
-        scaled_score = score 
+        scaled_score = score * area_factor
         
         center_x = (x1 + x2) / 2
         center_y = (y1 + y2) / 2
         
         # Calculate separate x and y standard deviations based on box dimensions
         # Add clamping to prevent extreme values
-        sigma_x = max(SIGMA_MIN, min(SIGMA_MAX, box_width / 6))
-        sigma_y = max(SIGMA_MIN, min(SIGMA_MAX, box_height / 6))
+        sigma_x = max(SIGMA_MIN, min(SIGMA_MAX, box_width / 4))
+        sigma_y = max(SIGMA_MIN, min(SIGMA_MAX, box_height / 4))
 
         
         # Calculate separate squared distances for x and y
